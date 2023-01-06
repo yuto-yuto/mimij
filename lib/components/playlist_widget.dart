@@ -24,9 +24,13 @@ class _PlayListWidgetState extends State<PlayListWidget> {
   Widget build(BuildContext context) {
     return DropTarget(
       onDragDone: (detail) async {
-        setState(() {
-          _list.addAll(detail.files);
-        });
+        final notExistedFiles = detail.files.where(
+            (element) => !_list.any((file) => file.path == element.path));
+        if (notExistedFiles.isNotEmpty) {
+          setState(() {
+            _list.addAll(notExistedFiles);
+          });
+        }
 
         debugPrint('onDragDone:');
         for (final file in detail.files) {
@@ -47,6 +51,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
         });
       },
       child: Container(
+        width: double.infinity,
         color: _dragging ? Colors.blue.withOpacity(0.4) : Colors.black26,
         child: Stack(
           children: [
