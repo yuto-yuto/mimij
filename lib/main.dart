@@ -1,6 +1,7 @@
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:kikimasu/components/player_widget.dart';
+import 'package:kikimasu/components/playlist_widget.dart';
 
 void main() {
   runApp(const MyApp());
@@ -46,7 +47,15 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
-        children: <Widget>[PlayerWidget(player: player)],
+        children: <Widget>[
+          PlayerWidget(player: player),
+          const Expanded(
+            child: Padding(
+              padding: EdgeInsets.all(10),
+              child: PlayListWidget(),
+            ),
+          ),
+        ],
       ),
     );
   }
