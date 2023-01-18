@@ -2,6 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:kikimasu/components/player_widget.dart';
 import 'package:kikimasu/components/playlist_widget.dart';
+import 'package:path/path.dart' as p;
 
 void main() {
   runApp(const MyApp());
@@ -32,6 +33,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final player = AudioPlayer();
+  PlayerState playerState = PlayerState.stopped;
 
   @override
   void initState() {
@@ -48,11 +50,22 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          PlayerWidget(player: player),
-          const Expanded(
+          PlayerWidget(
+            player: player,
+            playerState: playerState,
+          ),
+          Expanded(
             child: Padding(
-              padding: EdgeInsets.all(10),
-              child: PlayListWidget(),
+              padding: const EdgeInsets.all(10),
+              child: PlayListWidget(
+                onDoubleTap: (data) {
+                  final fullPath = p.join(data.path, data.name);
+                  player.play(DeviceFileSource(fullPath));
+                  setState(() {
+                    playerState = PlayerState.playing;
+                  });
+                },
+              ),
             ),
           ),
         ],

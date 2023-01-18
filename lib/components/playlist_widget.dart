@@ -16,11 +16,15 @@ class _ColumnInfo {
   });
 }
 
+typedef OnDoubleTapCallback = void Function(AudioData data);
+
 class PlayListWidget extends StatefulWidget {
   final String title;
+  final OnDoubleTapCallback? onDoubleTap;
 
   const PlayListWidget({
     super.key,
+    this.onDoubleTap,
     this.title = "Undefined",
   });
 
@@ -183,8 +187,9 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     return DataRow(
       onSelectChanged: (bool? selected) {
         setState(() {
-          if (doubleTapChecker.isDoubleTap(audioData)) {
-            debugPrint("Double tapped ${audioData.name}, ${audioData.path}");
+          if (widget.onDoubleTap != null &&
+              doubleTapChecker.isDoubleTap(audioData)) {
+            widget.onDoubleTap!(audioData);
             return;
           }
         });

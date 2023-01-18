@@ -6,10 +6,12 @@ import 'package:flutter/widgets.dart';
 
 class PlayerWidget extends StatefulWidget {
   final AudioPlayer player;
+  PlayerState playerState;
 
-  const PlayerWidget({
+  PlayerWidget({
     super.key,
     required this.player,
+    this.playerState = PlayerState.stopped,
   });
 
   @override
@@ -21,7 +23,6 @@ class PlayerWidget extends StatefulWidget {
 const _iconSize = 30.0;
 
 class _PlayerWidgetState extends State<PlayerWidget> {
-  PlayerState _playerState = PlayerState.stopped;
   Duration? _duration;
   Duration? _position;
 
@@ -31,9 +32,9 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   StreamSubscription? _playerCompleteSubscription;
   StreamSubscription? _playerStateChangeSubscription;
 
-  bool get _isPlaying => _playerState == PlayerState.playing;
-  bool get _isPaused => _playerState == PlayerState.paused;
-  bool get _isCompleted => _playerState == PlayerState.completed;
+  bool get _isPlaying => widget.playerState == PlayerState.playing;
+  bool get _isPaused => widget.playerState == PlayerState.paused;
+  bool get _isCompleted => widget.playerState == PlayerState.completed;
 
   String get _durationText =>
       _duration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
@@ -167,7 +168,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     _playerCompleteSubscription = widget.player.onPlayerComplete.listen(
       (event) {
         setState(() {
-          _playerState = PlayerState.stopped;
+          widget.playerState = PlayerState.stopped;
           _position = Duration.zero;
         });
       },
@@ -201,18 +202,18 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       await widget.player.seek(position);
     }
     await widget.player.resume();
-    setState(() => _playerState = PlayerState.playing);
+    setState(() => widget.playerState = PlayerState.playing);
   }
 
   Future<void> _pause() async {
     await widget.player.pause();
-    setState(() => _playerState = PlayerState.paused);
+    setState(() => widget.playerState = PlayerState.paused);
   }
 
   Future<void> _stop() async {
     await widget.player.stop();
     setState(() {
-      _playerState = PlayerState.stopped;
+      widget.playerState = PlayerState.stopped;
       _position = Duration.zero;
     });
   }
