@@ -33,7 +33,10 @@ class PlayListWidget extends StatefulWidget {
 class _PlayListWidgetState extends State<PlayListWidget> {
   List<AudioData> _list = [];
   bool _dragging = false;
-  final columnList = [_ColumnInfo("Name"), _ColumnInfo("Path")];
+  final columnList = [
+    _ColumnInfo("Name", width: 200),
+    _ColumnInfo("Path", width: 100)
+  ];
   final verticalScrollController = ScrollController();
   final horizontalScrollController = ScrollController();
   final doubleTapChecker = DoubleTapChecker<AudioData>();
@@ -189,7 +192,10 @@ class _PlayListWidgetState extends State<PlayListWidget> {
       cells: audioData.mapIndexed(
         (index, e) => DataCell(
           ConstrainedBox(
-            constraints: BoxConstraints(maxWidth: columnList[index].width),
+            constraints: BoxConstraints(
+              minWidth: _minimumWidth,
+              maxWidth: columnList[index].width,
+            ),
             child: Text(
               e,
               overflow: TextOverflow.ellipsis,
