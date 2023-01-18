@@ -6,10 +6,10 @@ class AudioData {
     required this.path,
   });
 
-  List<T> map<T>(T Function(String e) toElement) {
+  List<T> mapIndexed<T>(T Function(int index, String e) toElement) {
     return [
-      toElement(name),
-      toElement(path),
+      toElement(0, name),
+      toElement(1, path),
     ];
   }
 

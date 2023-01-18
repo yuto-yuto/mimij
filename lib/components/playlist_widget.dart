@@ -5,12 +5,14 @@ import 'package:flutter/material.dart';
 import 'package:kikimasu/models/audio_data.dart';
 import 'package:kikimasu/models/double_tap_checker.dart';
 
+const _minimumWidth = 50.0;
+
 class _ColumnInfo {
   final String label;
   double width;
   _ColumnInfo(
     this.label, {
-    this.width = 50.0,
+    this.width = _minimumWidth,
   });
 }
 
@@ -29,14 +31,15 @@ class PlayListWidget extends StatefulWidget {
 }
 
 class _PlayListWidgetState extends State<PlayListWidget> {
-  final List<AudioData> _list = [];
+  List<AudioData> _list = [];
   bool _dragging = false;
   final columnList = [_ColumnInfo("Name"), _ColumnInfo("Path")];
   final verticalScrollController = ScrollController();
   final horizontalScrollController = ScrollController();
   final doubleTapChecker = DoubleTapChecker<AudioData>();
-  double columnWidth = 200;
-  double initX = 0;
+  double columnInitX = 0;
+  bool isAsc = true;
+  int sortColumnIndex = 0;
 
   @override
   Widget build(BuildContext context) {
@@ -105,33 +108,62 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     );
   }
 
-  DataColumn _generateColumn(_ColumnInfo columnInfo) {
+  DataColumn _generateDataColumn(_ColumnInfo columnInfo) {
     return DataColumn(
       onSort: (columnIndex, ascending) {
-        if (columnInfo.label == "Name") {
-          return _list.sort((a, b) =>
-              ascending ? a.name.compareTo(b.name) : b.name.compareTo(a.name));
-        }
+        setState(() {
+          sortColumnIndex = columnIndex;
+          isAsc = ascending;
 
-        if (columnInfo.label == "Path") {
-          return _list.sort(((a, b) =>
-              ascending ? a.path.compareTo(b.path) : b.path.compareTo(a.path)));
-        }
-        debugPrint("Sort on undefined label ${columnInfo.label}");
+          if (columnIndex == 0) {
+            debugPrint("0, $ascending, $isAsc");
+            _list.sort((a, b) => ascending
+                ? a.name.compareTo(b.name)
+                : b.name.compareTo(a.name));
+          } else if (columnIndex == 1) {
+            debugPrint("1, $ascending, $isAsc");
+            _list.sort((a, b) => ascending
+                ? a.path.compareTo(b.path)
+                : b.path.compareTo(a.path));
+          }
+        });
       },
       label: Stack(
         children: [
           Container(
             width: columnInfo.width,
-            constraints: const BoxConstraints(minWidth: 200),
-            child: Text(columnInfo.label),
+            constraints: const BoxConstraints(minWidth: _minimumWidth),
+            child: Text(
+              columnInfo.label,
+              overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              softWrap: false,
+            ),
           ),
           Positioned(
             right: 0,
             child: GestureDetector(
+              onPanStart: (details) {
+                setState(() {
+                  columnInitX = details.globalPosition.dx;
+                });
+              },
+              onPanUpdate: (details) {
+                final increment = details.globalPosition.dx - columnInitX;
+                final newWidth = columnInfo.width + increment;
+                debugPrint(newWidth.toString());
+                setState(() {
+                  if (newWidth > _minimumWidth) {
+                    columnInitX = details.globalPosition.dx;
+                    columnInfo.width = newWidth;
+                  } else {
+                    columnInfo.width = _minimumWidth;
+                  }
+                });
+              },
               child: Container(
-                width: 5,
-                height: 60.0,
+                width: 10.0,
+                height: 50.0,
                 decoration: BoxDecoration(
                   color: Colors.black.withOpacity(1),
                   shape: BoxShape.rectangle,
@@ -154,21 +186,28 @@ class _PlayListWidgetState extends State<PlayListWidget> {
           }
         });
       },
-      cells: audioData.map((e) => DataCell(
-            Text(
+      cells: audioData.mapIndexed(
+        (index, e) => DataCell(
+          ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: columnList[index].width),
+            child: Text(
               e,
               overflow: TextOverflow.ellipsis,
               maxLines: 1,
               softWrap: false,
             ),
-          )),
+          ),
+        ),
+      ),
     );
   }
 
   Widget _generateDataTable() {
     return DataTable(
+      sortAscending: isAsc,
+      sortColumnIndex: sortColumnIndex,
       showCheckboxColumn: false,
-      columns: columnList.map((e) => _generateColumn(e)).toList(),
+      columns: columnList.map((e) => _generateDataColumn(e)).toList(),
       rows: _list.map((e) => _generateDataRow(e)).toList(),
     );
   }
