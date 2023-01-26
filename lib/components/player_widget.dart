@@ -25,6 +25,13 @@ const _iconSize = 30.0;
 class _PlayerWidgetState extends State<PlayerWidget> {
   Duration? _duration;
   Duration? _position;
+  Duration? _positionStart;
+  Duration? _positionEnd;
+  Color? _activeColor;
+  double? _selectedAreaWidth;
+  GlobalKey _keyForSlider = GlobalKey();
+  double? _leftPosition;
+  double? _rightPosition;
 
   PlayerState? _audioPlayerState;
   StreamSubscription? _durationSubscription;
@@ -36,10 +43,8 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   bool get _isPaused => widget.playerState == PlayerState.paused;
   bool get _isCompleted => widget.playerState == PlayerState.completed;
 
-  String get _durationText =>
-      _duration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
-  String get _positionText =>
-      _position?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
+  String get _durationText => _duration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
+  String get _positionText => _position?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
 
   @override
   void initState() {
@@ -98,14 +103,94 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         ),
         IconButton(
           key: const Key("from_here_button"),
-          onPressed: () => {},
+          onPressed: () => setState(() {
+            if (_positionEnd == null) {
+              if (_positionStart == _position) {
+                setState(() {
+                  _positionStart = null;
+                  _leftPosition = null;
+                });
+              } else {
+                final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
+                final sliderWidth = renderBox.size.width;
+                setState(() {
+                  _positionStart = _position;
+                  _leftPosition = sliderWidth * _positionValue();
+                  _selectedAreaWidth = null;
+                });
+              }
+              return;
+            }
+
+            if (_positionEnd!.inMicroseconds <= _position!.inMicroseconds) {
+              if (_positionStart != null) {
+                setState(() {
+                  _positionStart == null;
+                  _leftPosition = null;
+                  _selectedAreaWidth = _rightPosition!;
+                });
+              }
+              return;
+            }
+
+            if (_positionStart == _position) {
+              setState(() => _positionStart = null);
+              return;
+            }
+
+            if (_positionEnd!.inMicroseconds > _position!.inMicroseconds) {
+              final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
+              final sliderWidth = renderBox.size.width;
+              setState(() {
+                _positionStart = _position;
+                _leftPosition = sliderWidth * _positionValue();
+                _selectedAreaWidth = _rightPosition! - _leftPosition!;
+              });
+            }
+          }),
           iconSize: _iconSize,
           icon: const Icon(Icons.subdirectory_arrow_right),
           color: Colors.cyan,
         ),
         IconButton(
           key: const Key("to_here_button"),
-          onPressed: () => {},
+          onPressed: () {
+            if (_positionStart == null) {
+              setState(() {
+                if (_positionEnd == _position) {
+                  _positionEnd = null;
+                  _selectedAreaWidth = 0;
+                } else {
+                  _positionEnd = _position;
+                }
+              });
+              return;
+            }
+
+            if (_positionStart!.inMicroseconds >= _position!.inMicroseconds) {
+              if (_positionEnd != null) {
+                setState(() {
+                  _positionEnd == null;
+                  _selectedAreaWidth = null;
+                });
+              }
+              return;
+            }
+
+            if (_positionEnd == _position) {
+              setState(() => _positionEnd = null);
+              return;
+            }
+            if (_positionStart!.inMicroseconds < _position!.inMicroseconds) {
+              final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
+              final sliderWidth = renderBox.size.width;
+              setState(() {
+                _positionEnd = _position;
+                _rightPosition = sliderWidth * _positionValue();
+                _selectedAreaWidth = _rightPosition! - _leftPosition!;
+              });
+            }
+          },
           iconSize: _iconSize,
           icon: const Icon(Icons.subdirectory_arrow_left),
           color: Colors.cyan,
@@ -121,6 +206,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     );
 
     final slider = Slider(
+      key: _keyForSlider,
       onChanged: (double v) {
         final duration = _duration;
         if (duration == null) {
@@ -130,6 +216,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         widget.player.seek(Duration(milliseconds: position.round()));
       },
       value: _positionValue(),
+      activeColor: _activeColor,
     );
 
     final currentPosition = Text(
@@ -150,7 +237,22 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             ),
           ],
         ),
-        slider,
+        Stack(
+          children: [
+            Positioned(
+              top: 10,
+              left: _leftPosition,
+              child: ColoredBox(
+                color: Theme.of(context).primaryColor.withOpacity(0.5),
+                child: SizedBox(
+                  height: 30,
+                  width: _selectedAreaWidth ?? 10,
+                ),
+              ),
+            ),
+            slider,
+          ],
+        ),
         Text(_audioPlayerState.toString()),
       ],
     );
@@ -174,8 +276,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
       },
     );
 
-    _playerStateChangeSubscription =
-        widget.player.onPlayerStateChanged.listen((state) {
+    _playerStateChangeSubscription = widget.player.onPlayerStateChanged.listen((state) {
       setState(() {
         _audioPlayerState = state;
       });
@@ -183,9 +284,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   }
 
   double _positionValue() {
-    if (_position != null &&
-        _duration != null &&
-        _position!.inMilliseconds > 0) {
+    if (_position != null && _duration != null && _position!.inMilliseconds > 0) {
       final value = _position!.inMilliseconds / _duration!.inMilliseconds;
       if (value > 1) {
         _position = _duration;

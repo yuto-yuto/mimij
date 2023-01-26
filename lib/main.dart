@@ -58,9 +58,9 @@ class _MyHomePageState extends State<MyHomePage> {
             child: Padding(
               padding: const EdgeInsets.all(10),
               child: PlayListWidget(
-                onDoubleTap: (data) {
+                onDoubleTap: (data) async {
                   final fullPath = p.join(data.path, data.name);
-                  player.play(DeviceFileSource(fullPath));
+                  await player.play(DeviceFileSource(fullPath));
                   setState(() {
                     playerState = PlayerState.playing;
                   });
