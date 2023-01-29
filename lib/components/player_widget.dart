@@ -29,7 +29,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   Duration? _positionEnd;
   Color? _activeColor;
   double? _selectedAreaWidth;
-  GlobalKey _keyForSlider = GlobalKey();
+  final _keyForSlider = GlobalKey();
   double? _leftPosition;
   double? _rightPosition;
 
@@ -45,6 +45,11 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   String get _durationText => _duration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
   String get _positionText => _position?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
+
+  double get sliderWidth {
+    final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
+    return renderBox.size.width;
+  }
 
   @override
   void initState() {
@@ -109,14 +114,13 @@ class _PlayerWidgetState extends State<PlayerWidget> {
                 setState(() {
                   _positionStart = null;
                   _leftPosition = null;
+                  _selectedAreaWidth = null;
                 });
               } else {
-                final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
-                final sliderWidth = renderBox.size.width;
                 setState(() {
                   _positionStart = _position;
                   _leftPosition = sliderWidth * _positionValue();
-                  _selectedAreaWidth = null;
+                  _selectedAreaWidth = sliderWidth * (1 - _positionValue());
                 });
               }
               return;
@@ -125,7 +129,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             if (_positionEnd!.inMicroseconds <= _position!.inMicroseconds) {
               if (_positionStart != null) {
                 setState(() {
-                  _positionStart == null;
+                  _positionStart = null;
                   _leftPosition = null;
                   _selectedAreaWidth = _rightPosition!;
                 });
@@ -134,13 +138,15 @@ class _PlayerWidgetState extends State<PlayerWidget> {
             }
 
             if (_positionStart == _position) {
-              setState(() => _positionStart = null);
+              setState(() {
+                _positionStart = null;
+                _leftPosition = null;
+                _selectedAreaWidth = _rightPosition!;
+              });
               return;
             }
 
             if (_positionEnd!.inMicroseconds > _position!.inMicroseconds) {
-              final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
-              final sliderWidth = renderBox.size.width;
               setState(() {
                 _positionStart = _position;
                 _leftPosition = sliderWidth * _positionValue();
@@ -159,31 +165,29 @@ class _PlayerWidgetState extends State<PlayerWidget> {
               setState(() {
                 if (_positionEnd == _position) {
                   _positionEnd = null;
+                  _rightPosition = null;
                   _selectedAreaWidth = 0;
                 } else {
                   _positionEnd = _position;
+                  _rightPosition = sliderWidth * _positionValue();
+                  _selectedAreaWidth = _rightPosition;
                 }
               });
               return;
             }
 
-            if (_positionStart!.inMicroseconds >= _position!.inMicroseconds) {
+            if (_positionStart!.inMicroseconds >= _position!.inMicroseconds || _positionEnd == _position) {
               if (_positionEnd != null) {
                 setState(() {
-                  _positionEnd == null;
-                  _selectedAreaWidth = null;
+                  _positionEnd = null;
+                  _rightPosition = null;
+                  _selectedAreaWidth = sliderWidth * (1 - _positionValue());
                 });
               }
               return;
             }
 
-            if (_positionEnd == _position) {
-              setState(() => _positionEnd = null);
-              return;
-            }
             if (_positionStart!.inMicroseconds < _position!.inMicroseconds) {
-              final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
-              final sliderWidth = renderBox.size.width;
               setState(() {
                 _positionEnd = _position;
                 _rightPosition = sliderWidth * _positionValue();

@@ -2,7 +2,7 @@ import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:kikimasu/components/player_widget.dart';
 import 'package:kikimasu/components/playlist_widget.dart';
-import 'package:path/path.dart' as p;
+import 'package:path/path.dart' as path;
 
 void main() {
   runApp(const MyApp());
@@ -38,7 +38,6 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    player.setSourceDeviceFile("/home/yuto/Music/0A733F7F_2.mp3");
   }
 
   @override
@@ -59,7 +58,7 @@ class _MyHomePageState extends State<MyHomePage> {
               padding: const EdgeInsets.all(10),
               child: PlayListWidget(
                 onDoubleTap: (data) async {
-                  final fullPath = p.join(data.path, data.name);
+                  final fullPath = path.join(data.path, data.name);
                   await player.play(DeviceFileSource(fullPath));
                   setState(() {
                     playerState = PlayerState.playing;
