@@ -1,8 +1,8 @@
 import 'dart:async';
 
 import 'package:audioplayers/audioplayers.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/widgets.dart';
 
 class PlayerWidget extends StatefulWidget {
   final AudioPlayer player;
@@ -21,17 +21,19 @@ class PlayerWidget extends StatefulWidget {
 }
 
 const _iconSize = 30.0;
+const _kPadding = 8.0;
+const _sliderPadding = CupertinoThumbPainter.radius + _kPadding;
 
-class _PlayerWidgetState extends State<PlayerWidget> {
-  Duration? _duration;
-  Duration? _position;
-  Duration? _positionStart;
-  Duration? _positionEnd;
-  Color? _activeColor;
-  double? _selectedAreaWidth;
+class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver {
+  Duration? audioLength;
+  Duration? currentPositionDuration;
+  double? startRelativeX;
+  double? endRelativeX;
+  double? selectedAreaWidth;
   final _keyForSlider = GlobalKey();
-  double? _leftPosition;
-  double? _rightPosition;
+  double? _leftGlobalX;
+  double? _rightGlobalX;
+  double sliderPosition = 0;
 
   PlayerState? _audioPlayerState;
   StreamSubscription? _durationSubscription;
@@ -43,27 +45,71 @@ class _PlayerWidgetState extends State<PlayerWidget> {
   bool get _isPaused => widget.playerState == PlayerState.paused;
   bool get _isCompleted => widget.playerState == PlayerState.completed;
 
-  String get _durationText => _duration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
-  String get _positionText => _position?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
+  String get _durationText => audioLength?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
+  String get _positionText => currentPositionDuration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
 
   double get sliderWidth {
     final renderBox = _keyForSlider.currentContext?.findRenderObject() as RenderBox;
-    return renderBox.size.width;
+    return renderBox.size.width - _sliderPadding * 2;
+    ;
   }
 
+  void set leftGlobalX(double? value) {
+    if (value != null) {
+      _leftGlobalX = value + _sliderPadding;
+    } else {
+      _leftGlobalX = null;
+    }
+  }
+
+  double? get leftGlobalX => _leftGlobalX;
+
+  void set rightGlobalX(double? value) {
+    if (value != null) {
+      _rightGlobalX = value + _sliderPadding;
+    } else {
+      _rightGlobalX = null;
+    }
+  }
+
+  double? get rightGlobalX => _rightGlobalX;
   @override
   void initState() {
     super.initState();
     _initStreams();
+    WidgetsBinding.instance.addObserver(this);
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
     _durationSubscription?.cancel();
     _positionSubscription?.cancel();
     _playerCompleteSubscription?.cancel();
     _playerStateChangeSubscription?.cancel();
     super.dispose();
+  }
+
+  @override
+  void didChangeMetrics() {
+    if (_leftGlobalX != null && _rightGlobalX == null) {
+      setState(() {
+        leftGlobalX = startRelativeX! * sliderWidth;
+        selectedAreaWidth = sliderWidth * (1 - startRelativeX!);
+      });
+    } else if (_leftGlobalX == null && _rightGlobalX != null) {
+      setState(() {
+        rightGlobalX = endRelativeX! * sliderWidth;
+        selectedAreaWidth = _rightGlobalX!;
+      });
+    } else if (_leftGlobalX != null && _rightGlobalX != null) {
+      setState(() {
+        leftGlobalX = startRelativeX! * sliderWidth;
+        rightGlobalX = endRelativeX! * sliderWidth;
+        selectedAreaWidth = _rightGlobalX! - leftGlobalX!;
+      });
+    }
   }
 
   @override
@@ -109,48 +155,48 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         IconButton(
           key: const Key("from_here_button"),
           onPressed: () => setState(() {
-            if (_positionEnd == null) {
-              if (_positionStart == _position) {
+            if (endRelativeX == null) {
+              if (startRelativeX == sliderPosition) {
                 setState(() {
-                  _positionStart = null;
-                  _leftPosition = null;
-                  _selectedAreaWidth = null;
+                  startRelativeX = null;
+                  leftGlobalX = null;
+                  selectedAreaWidth = null;
                 });
               } else {
                 setState(() {
-                  _positionStart = _position;
-                  _leftPosition = sliderWidth * _positionValue();
-                  _selectedAreaWidth = sliderWidth * (1 - _positionValue());
+                  startRelativeX = sliderPosition;
+                  leftGlobalX = sliderWidth * sliderPosition;
+                  selectedAreaWidth = sliderWidth * (1 - sliderPosition);
                 });
               }
               return;
             }
 
-            if (_positionEnd!.inMicroseconds <= _position!.inMicroseconds) {
-              if (_positionStart != null) {
+            if (endRelativeX! <= sliderPosition) {
+              if (startRelativeX != null) {
                 setState(() {
-                  _positionStart = null;
-                  _leftPosition = null;
-                  _selectedAreaWidth = _rightPosition!;
+                  startRelativeX = null;
+                  leftGlobalX = null;
+                  selectedAreaWidth = rightGlobalX!;
                 });
               }
               return;
             }
 
-            if (_positionStart == _position) {
+            if (startRelativeX == sliderPosition) {
               setState(() {
-                _positionStart = null;
-                _leftPosition = null;
-                _selectedAreaWidth = _rightPosition!;
+                startRelativeX = null;
+                leftGlobalX = null;
+                selectedAreaWidth = rightGlobalX!;
               });
               return;
             }
 
-            if (_positionEnd!.inMicroseconds > _position!.inMicroseconds) {
+            if (endRelativeX! > sliderPosition) {
               setState(() {
-                _positionStart = _position;
-                _leftPosition = sliderWidth * _positionValue();
-                _selectedAreaWidth = _rightPosition! - _leftPosition!;
+                startRelativeX = sliderPosition;
+                leftGlobalX = sliderWidth * sliderPosition;
+                selectedAreaWidth = rightGlobalX! - leftGlobalX!;
               });
             }
           }),
@@ -161,37 +207,37 @@ class _PlayerWidgetState extends State<PlayerWidget> {
         IconButton(
           key: const Key("to_here_button"),
           onPressed: () {
-            if (_positionStart == null) {
+            if (startRelativeX == null) {
               setState(() {
-                if (_positionEnd == _position) {
-                  _positionEnd = null;
-                  _rightPosition = null;
-                  _selectedAreaWidth = 0;
+                if (endRelativeX == sliderPosition) {
+                  endRelativeX = null;
+                  rightGlobalX = null;
+                  selectedAreaWidth = null;
                 } else {
-                  _positionEnd = _position;
-                  _rightPosition = sliderWidth * _positionValue();
-                  _selectedAreaWidth = _rightPosition;
+                  endRelativeX = sliderPosition;
+                  rightGlobalX = sliderWidth * sliderPosition;
+                  selectedAreaWidth = rightGlobalX;
                 }
               });
               return;
             }
 
-            if (_positionStart!.inMicroseconds >= _position!.inMicroseconds || _positionEnd == _position) {
-              if (_positionEnd != null) {
+            if (startRelativeX! >= sliderPosition || endRelativeX == sliderPosition) {
+              if (endRelativeX != null) {
                 setState(() {
-                  _positionEnd = null;
-                  _rightPosition = null;
-                  _selectedAreaWidth = sliderWidth * (1 - _positionValue());
+                  endRelativeX = null;
+                  rightGlobalX = null;
+                  selectedAreaWidth = sliderWidth * (1 - startRelativeX!);
                 });
               }
               return;
             }
 
-            if (_positionStart!.inMicroseconds < _position!.inMicroseconds) {
+            if (startRelativeX! < sliderPosition) {
               setState(() {
-                _positionEnd = _position;
-                _rightPosition = sliderWidth * _positionValue();
-                _selectedAreaWidth = _rightPosition! - _leftPosition!;
+                endRelativeX = sliderPosition;
+                rightGlobalX = sliderWidth * sliderPosition;
+                selectedAreaWidth = rightGlobalX! - leftGlobalX!;
               });
             }
           },
@@ -212,15 +258,14 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     final slider = Slider(
       key: _keyForSlider,
       onChanged: (double v) {
-        final duration = _duration;
+        final duration = audioLength;
         if (duration == null) {
           return;
         }
         final position = v * duration.inMilliseconds;
         widget.player.seek(Duration(milliseconds: position.round()));
       },
-      value: _positionValue(),
-      activeColor: _activeColor,
+      value: sliderPosition,
     );
 
     final currentPosition = Text(
@@ -245,12 +290,12 @@ class _PlayerWidgetState extends State<PlayerWidget> {
           children: [
             Positioned(
               top: 10,
-              left: _leftPosition,
+              left: leftGlobalX,
               child: ColoredBox(
                 color: Theme.of(context).primaryColor.withOpacity(0.5),
                 child: SizedBox(
                   height: 30,
-                  width: _selectedAreaWidth ?? 10,
+                  width: selectedAreaWidth ?? 10,
                 ),
               ),
             ),
@@ -264,18 +309,32 @@ class _PlayerWidgetState extends State<PlayerWidget> {
 
   void _initStreams() {
     _durationSubscription = widget.player.onDurationChanged.listen((duration) {
-      setState(() => _duration = duration);
+      setState(() => audioLength = duration);
     });
 
-    _positionSubscription = widget.player.onPositionChanged.listen(
-      (p) => setState(() => _position = p),
-    );
+    _positionSubscription = widget.player.onPositionChanged.listen((p) {
+      currentPositionDuration = p;
+
+      if (audioLength != null && p.inMilliseconds > 0) {
+        final value = p.inMilliseconds / audioLength!.inMilliseconds;
+        if (value > 1) {
+          setState(() {
+            currentPositionDuration = audioLength;
+            sliderPosition = 1;
+          });
+          return;
+        }
+        setState(() => sliderPosition = value);
+        return;
+      }
+      setState(() => sliderPosition = 0);
+    });
 
     _playerCompleteSubscription = widget.player.onPlayerComplete.listen(
       (event) {
         setState(() {
           widget.playerState = PlayerState.stopped;
-          _position = Duration.zero;
+          currentPositionDuration = Duration.zero;
         });
       },
     );
@@ -287,20 +346,20 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     });
   }
 
-  double _positionValue() {
-    if (_position != null && _duration != null && _position!.inMilliseconds > 0) {
-      final value = _position!.inMilliseconds / _duration!.inMilliseconds;
-      if (value > 1) {
-        _position = _duration;
-        return 1;
-      }
-      return value;
-    }
-    return 0;
-  }
+  // double _positionValue() {
+  //   if (currentPositionDuration != null && audioLength != null && currentPositionDuration!.inMilliseconds > 0) {
+  //     final value = currentPositionDuration!.inMilliseconds / audioLength!.inMilliseconds;
+  //     if (value > 1) {
+  //       currentPositionDuration = audioLength;
+  //       return 1;
+  //     }
+  //     return value;
+  //   }
+  //   return 0;
+  // }
 
   Future<void> _play() async {
-    final position = _position;
+    final position = currentPositionDuration;
     if (position != null && position.inMilliseconds > 0) {
       await widget.player.seek(position);
     }
@@ -317,7 +376,7 @@ class _PlayerWidgetState extends State<PlayerWidget> {
     await widget.player.stop();
     setState(() {
       widget.playerState = PlayerState.stopped;
-      _position = Duration.zero;
+      currentPositionDuration = Duration.zero;
     });
   }
 }
