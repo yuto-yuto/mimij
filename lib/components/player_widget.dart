@@ -48,6 +48,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
   double sliderPosition = 0;
   bool isAPressed = false;
   bool isBPressed = false;
+  double volume = 1;
 
   PlayerState? _audioPlayerState;
   StreamSubscription? _durationSubscription;
@@ -289,6 +290,16 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
       value: sliderPosition,
     );
 
+    final volumeSlider = Slider(
+      onChanged: (double v) {
+        widget.player.setVolume(v);
+        setState(() {
+          volume = v;
+        });
+      },
+      value: volume,
+    );
+
     final currentPosition = Text(
       '$_positionText / $_durationText',
       style: const TextStyle(fontSize: 16.0),
@@ -321,6 +332,13 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
               ),
             ),
             slider,
+          ],
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          children: [
+            const SizedBox(width: 70, child: Text("Volume")),
+            Expanded(child: volumeSlider),
           ],
         ),
         Text(_audioPlayerState.toString()),
