@@ -28,6 +28,8 @@ class _CurrentPosition {
   Duration? currentDuration;
   double? sliderPosition;
 
+  get isNull => currentDuration == null;
+
   void clear() {
     currentDuration = null;
     sliderPosition = null;
@@ -44,6 +46,8 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
   double? _leftGlobalX;
   double? _rightGlobalX;
   double sliderPosition = 0;
+  bool isAPressed = false;
+  bool isBPressed = false;
 
   PlayerState? _audioPlayerState;
   StreamSubscription? _durationSubscription;
@@ -163,100 +167,91 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
         ),
         IconButton(
           key: const Key("from_here_button"),
-          onPressed: () => setState(() {
-            if (endRelativeX.sliderPosition == null) {
-              if (startRelativeX.sliderPosition == sliderPosition) {
-                setState(() {
-                  startRelativeX.clear();
-                  leftGlobalX = null;
-                  selectedAreaWidth = null;
-                });
-              } else {
+          onPressed: () {
+            if (audioLength == null) {
+              return;
+            }
+            if (endRelativeX.isNull) {
+              if (startRelativeX.isNull) {
                 setState(() {
                   startRelativeX.sliderPosition = sliderPosition;
                   startRelativeX.currentDuration = currentPositionDuration ?? Duration.zero;
                   leftGlobalX = sliderWidth * sliderPosition;
                   selectedAreaWidth = sliderWidth * (1 - sliderPosition);
+                  isAPressed = !isAPressed;
                 });
-              }
-              return;
-            }
-
-            if (endRelativeX.sliderPosition! <= sliderPosition) {
-              if (startRelativeX.currentDuration != null) {
+              } else {
                 setState(() {
                   startRelativeX.clear();
                   leftGlobalX = null;
-                  selectedAreaWidth = rightGlobalX!;
+                  selectedAreaWidth = null;
+                  isAPressed = !isAPressed;
                 });
               }
-              return;
-            }
-
-            if (startRelativeX.sliderPosition == sliderPosition) {
-              setState(() {
-                startRelativeX.clear();
-                leftGlobalX = null;
-                selectedAreaWidth = rightGlobalX!;
-              });
-              return;
-            }
-
-            if (endRelativeX.sliderPosition! > sliderPosition) {
+            } else if (startRelativeX.isNull) {
               setState(() {
                 startRelativeX.sliderPosition = sliderPosition;
                 startRelativeX.currentDuration = currentPositionDuration;
                 leftGlobalX = sliderWidth * sliderPosition;
                 selectedAreaWidth = rightGlobalX! - leftGlobalX!;
+                isAPressed = !isAPressed;
+              });
+            } else {
+              setState(() {
+                startRelativeX.clear();
+                leftGlobalX = null;
+                selectedAreaWidth = rightGlobalX!;
+                isAPressed = !isAPressed;
               });
             }
-          }),
+          },
           iconSize: _iconSize,
           icon: const Icon(Icons.subdirectory_arrow_right),
-          color: Colors.cyan,
+          color: isAPressed ? Theme.of(context).disabledColor : Theme.of(context).primaryColor,
         ),
         IconButton(
           key: const Key("to_here_button"),
           onPressed: () {
-            if (startRelativeX.currentDuration == null) {
-              setState(() {
-                if (endRelativeX.sliderPosition == sliderPosition) {
-                  endRelativeX.clear();
-                  rightGlobalX = null;
-                  selectedAreaWidth = null;
-                } else {
+            if (audioLength == null) {
+              return;
+            }
+            if (startRelativeX.isNull) {
+              if (endRelativeX.isNull) {
+                setState(() {
                   endRelativeX.sliderPosition = sliderPosition;
                   endRelativeX.currentDuration = currentPositionDuration;
                   rightGlobalX = sliderWidth * sliderPosition;
                   selectedAreaWidth = rightGlobalX;
-                }
-              });
-              return;
-            }
-
-            if (startRelativeX.sliderPosition! >= sliderPosition || endRelativeX.sliderPosition == sliderPosition) {
-              if (endRelativeX.currentDuration != null) {
+                  isBPressed = !isBPressed;
+                });
+              } else {
                 setState(() {
                   endRelativeX.clear();
                   rightGlobalX = null;
-                  selectedAreaWidth = sliderWidth * (1 - startRelativeX.sliderPosition!);
+                  selectedAreaWidth = null;
+                  isBPressed = !isBPressed;
                 });
               }
-              return;
-            }
-
-            if (startRelativeX.sliderPosition! < sliderPosition) {
+            } else if (endRelativeX.isNull) {
               setState(() {
                 endRelativeX.sliderPosition = sliderPosition;
                 endRelativeX.currentDuration = currentPositionDuration;
                 rightGlobalX = sliderWidth * sliderPosition;
                 selectedAreaWidth = rightGlobalX! - leftGlobalX!;
+                isBPressed = !isBPressed;
+              });
+            } else {
+              setState(() {
+                endRelativeX.clear();
+                rightGlobalX = null;
+                selectedAreaWidth = sliderWidth * (1 - startRelativeX.sliderPosition!);
+                isBPressed = !isBPressed;
               });
             }
           },
           iconSize: _iconSize,
           icon: const Icon(Icons.subdirectory_arrow_left),
-          color: Colors.cyan,
+          color: isBPressed ? Theme.of(context).disabledColor : Theme.of(context).primaryColor,
         ),
         IconButton(
           key: const Key("one_loop_button"),
@@ -321,7 +316,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
                 color: Theme.of(context).primaryColor.withOpacity(0.5),
                 child: SizedBox(
                   height: 30,
-                  width: selectedAreaWidth ?? 10,
+                  width: selectedAreaWidth,
                 ),
               ),
             ),
@@ -410,6 +405,13 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     setState(() {
       widget.playerState = PlayerState.stopped;
       currentPositionDuration = Duration.zero;
+      startRelativeX.clear();
+      endRelativeX.clear();
+      isAPressed = false;
+      isBPressed = false;
+      leftGlobalX = null;
+      rightGlobalX = null;
+      selectedAreaWidth = null;
     });
   }
 }
