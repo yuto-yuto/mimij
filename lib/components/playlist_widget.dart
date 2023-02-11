@@ -201,12 +201,12 @@ class _PlayListWidgetState extends State<PlayListWidget> {
 
   DataRow _generateDataRow(BuildContext context, AudioData audioData) {
     return DataRow(
-      // color: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
-      //   if (states.contains(MaterialState.selected)) {
-      //     return Theme.of(context).colorScheme.primary.withOpacity(0.08);
-      //   }
-      //   return null; // Use the default value.
-      // }),
+      color: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+        if (states.contains(MaterialState.selected)) {
+          return Theme.of(context).primaryColor.withOpacity(0.3);
+        }
+        return null; // Use the default value.
+      }),
       selected: selectedList[audioData]!,
       onSelectChanged: (bool? selected) {
         final isDoubleTap = doubleTapChecker.isDoubleTap(audioData);
@@ -242,7 +242,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     return DataTable(
       sortAscending: isAsc,
       sortColumnIndex: sortColumnIndex,
-      showCheckboxColumn: true,
+      showCheckboxColumn: false,
       columns: columnList.map((e) => _generateDataColumn(context, e)).toList(),
       rows: _list.map((e) => _generateDataRow(context, e)).toList(),
     );
