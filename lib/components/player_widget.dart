@@ -6,12 +6,10 @@ import 'package:flutter/material.dart';
 
 class PlayerWidget extends StatefulWidget {
   final AudioPlayer player;
-  PlayerState playerState;
 
-  PlayerWidget({
+  const PlayerWidget({
     super.key,
     required this.player,
-    this.playerState = PlayerState.stopped,
   });
 
   @override
@@ -56,9 +54,9 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
   StreamSubscription? _playerCompleteSubscription;
   StreamSubscription? _playerStateChangeSubscription;
 
-  bool get _isPlaying => widget.playerState == PlayerState.playing;
-  bool get _isPaused => widget.playerState == PlayerState.paused;
-  bool get _isCompleted => widget.playerState == PlayerState.completed;
+  bool get _isPlaying => _audioPlayerState == PlayerState.playing;
+  bool get _isPaused => _audioPlayerState == PlayerState.paused;
+  bool get _isCompleted => _audioPlayerState == PlayerState.completed;
 
   String get _durationText => audioLength?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
   String get _positionText => currentPositionDuration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
@@ -337,7 +335,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
         Row(
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
-            const SizedBox(width: 70, child: Text("Volume")),
+            const SizedBox(width: 70, child: Center(child: Text("Volume"))),
             Expanded(child: volumeSlider),
           ],
         ),
@@ -390,7 +388,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     _playerCompleteSubscription = widget.player.onPlayerComplete.listen(
       (event) {
         setState(() {
-          widget.playerState = PlayerState.stopped;
+          _audioPlayerState = PlayerState.stopped;
           currentPositionDuration = Duration.zero;
         });
       },
@@ -410,18 +408,18 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
       await widget.player.seek(position);
     }
     await widget.player.resume();
-    setState(() => widget.playerState = PlayerState.playing);
+    setState(() => _audioPlayerState = PlayerState.playing);
   }
 
   Future<void> _pause() async {
     await widget.player.pause();
-    setState(() => widget.playerState = PlayerState.paused);
+    setState(() => _audioPlayerState = PlayerState.paused);
   }
 
   Future<void> _stop() async {
     await widget.player.stop();
     setState(() {
-      widget.playerState = PlayerState.stopped;
+      _audioPlayerState = PlayerState.stopped;
       currentPositionDuration = Duration.zero;
       startRelativeX.clear();
       endRelativeX.clear();

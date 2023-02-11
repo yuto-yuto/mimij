@@ -33,7 +33,6 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   final player = AudioPlayer();
-  PlayerState playerState = PlayerState.stopped;
 
   @override
   void initState() {
@@ -51,7 +50,6 @@ class _MyHomePageState extends State<MyHomePage> {
         children: <Widget>[
           PlayerWidget(
             player: player,
-            playerState: playerState,
           ),
           Expanded(
             child: Padding(
@@ -60,9 +58,6 @@ class _MyHomePageState extends State<MyHomePage> {
                 onDoubleTap: (data) async {
                   final fullPath = path.join(data.path, data.name);
                   await player.play(DeviceFileSource(fullPath));
-                  setState(() {
-                    playerState = PlayerState.playing;
-                  });
                 },
               ),
             ),
