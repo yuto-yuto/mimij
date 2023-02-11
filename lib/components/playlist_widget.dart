@@ -37,10 +37,7 @@ class PlayListWidget extends StatefulWidget {
 class _PlayListWidgetState extends State<PlayListWidget> {
   final List<AudioData> _list = [];
   bool _dragging = false;
-  final columnList = [
-    _ColumnInfo("Name", width: 200),
-    _ColumnInfo("Path", width: 100)
-  ];
+  final columnList = [_ColumnInfo("Name", width: 200), _ColumnInfo("Path", width: 100)];
   final verticalScrollController = ScrollController();
   final horizontalScrollController = ScrollController();
   final doubleTapChecker = DoubleTapChecker<AudioData>();
@@ -52,13 +49,11 @@ class _PlayListWidgetState extends State<PlayListWidget> {
   Widget build(BuildContext context) {
     return DropTarget(
       onDragDone: (detail) async {
-        final notExistedFiles = detail.files.where(
-            (element) => !_list.any((file) => file.path == element.path));
+        final notExistedFiles = detail.files.where((element) => !_list.any((file) => file.path == element.path));
         if (notExistedFiles.isNotEmpty) {
           setState(() {
             _list.addAll(
-              notExistedFiles.map((e) =>
-                  AudioData(name: e.name, path: File(e.path).parent.path)),
+              notExistedFiles.map((e) => AudioData(name: e.name, path: File(e.path).parent.path)),
             );
           });
         }
@@ -124,14 +119,10 @@ class _PlayListWidgetState extends State<PlayListWidget> {
 
           if (columnIndex == 0) {
             debugPrint("0, $ascending, $isAsc");
-            _list.sort((a, b) => ascending
-                ? a.name.compareTo(b.name)
-                : b.name.compareTo(a.name));
+            _list.sort((a, b) => ascending ? a.name.compareTo(b.name) : b.name.compareTo(a.name));
           } else if (columnIndex == 1) {
             debugPrint("1, $ascending, $isAsc");
-            _list.sort((a, b) => ascending
-                ? a.path.compareTo(b.path)
-                : b.path.compareTo(a.path));
+            _list.sort((a, b) => ascending ? a.path.compareTo(b.path) : b.path.compareTo(a.path));
           }
         });
       },
@@ -149,7 +140,6 @@ class _PlayListWidgetState extends State<PlayListWidget> {
           ),
           Positioned(
             right: 0,
-            width: 10,
             child: GestureDetector(
               onPanStart: (details) {
                 setState(() {
@@ -170,11 +160,17 @@ class _PlayListWidgetState extends State<PlayListWidget> {
                 });
               },
               child: Container(
-                width: 10.0,
-                height: 50.0,
+                width: 22.0,
+                height: 22.0,
                 decoration: BoxDecoration(
-                  color: Colors.black.withOpacity(1),
-                  shape: BoxShape.rectangle,
+                  color: Theme.of(context).indicatorColor.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Center(
+                  child: Text(
+                    "<>",
+                    style: TextStyle(fontSize: 10),
+                  ),
                 ),
               ),
             ),
@@ -188,8 +184,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     return DataRow(
       onSelectChanged: (bool? selected) {
         setState(() {
-          if (widget.onDoubleTap != null &&
-              doubleTapChecker.isDoubleTap(audioData)) {
+          if (widget.onDoubleTap != null && doubleTapChecker.isDoubleTap(audioData)) {
             widget.onDoubleTap!(audioData);
             return;
           }
