@@ -35,7 +35,7 @@ class PlayListWidget extends StatefulWidget {
 }
 
 class _PlayListWidgetState extends State<PlayListWidget> {
-  List<AudioData> _list = [];
+  final List<AudioData> _list = [];
   bool _dragging = false;
   final columnList = [
     _ColumnInfo("Name", width: 200),
@@ -149,6 +149,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
           ),
           Positioned(
             right: 0,
+            width: 10,
             child: GestureDetector(
               onPanStart: (details) {
                 setState(() {
