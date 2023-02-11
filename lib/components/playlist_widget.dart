@@ -4,6 +4,7 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:kikimasu/models/audio_data.dart';
 import 'package:kikimasu/models/double_tap_checker.dart';
+import 'package:path/path.dart';
 
 const _minimumWidth = 50.0;
 
@@ -44,6 +45,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
   double columnInitX = 0;
   bool isAsc = true;
   int sortColumnIndex = 0;
+  final Map<AudioData, bool> selectedList = <AudioData, bool>{};
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +57,9 @@ class _PlayListWidgetState extends State<PlayListWidget> {
             _list.addAll(
               notExistedFiles.map((e) => AudioData(name: e.name, path: File(e.path).parent.path)),
             );
+            for (var element in _list) {
+              selectedList[element] = false;
+            }
           });
         }
 
@@ -74,13 +79,27 @@ class _PlayListWidgetState extends State<PlayListWidget> {
       },
       child: Container(
         width: double.infinity,
-        color: _dragging ? Colors.blue.withOpacity(0.4) : Colors.cyan[100],
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(color: Theme.of(context).primaryColorDark.withOpacity(0.6)),
+            BoxShadow(
+              spreadRadius: -4.0,
+              blurRadius: 3.0,
+              color:
+                  _dragging ? Theme.of(context).primaryColorDark.withAlpha(5) : Theme.of(context).primaryColorLight,
+            ),
+          ],
+          shape: BoxShape.rectangle,
+          borderRadius: const BorderRadius.all(
+            Radius.circular(10),
+          ),
+        ),
         child: Stack(
           children: [
             if (_list.isEmpty)
               const Center(child: Text("Drop here"))
             else
-              _generateCrossScrollbars(_generateDataTable()),
+              _generateCrossScrollbars(_generateDataTable(context)),
           ],
         ),
       ),
@@ -110,7 +129,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     );
   }
 
-  DataColumn _generateDataColumn(_ColumnInfo columnInfo) {
+  DataColumn _generateDataColumn(BuildContext context, _ColumnInfo columnInfo) {
     return DataColumn(
       onSort: (columnIndex, ascending) {
         setState(() {
@@ -180,15 +199,25 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     );
   }
 
-  DataRow _generateDataRow(AudioData audioData) {
+  DataRow _generateDataRow(BuildContext context, AudioData audioData) {
     return DataRow(
+      // color: MaterialStateProperty.resolveWith<Color?>((Set<MaterialState> states) {
+      //   if (states.contains(MaterialState.selected)) {
+      //     return Theme.of(context).colorScheme.primary.withOpacity(0.08);
+      //   }
+      //   return null; // Use the default value.
+      // }),
+      selected: selectedList[audioData]!,
       onSelectChanged: (bool? selected) {
-        setState(() {
-          if (widget.onDoubleTap != null && doubleTapChecker.isDoubleTap(audioData)) {
+        final isDoubleTap = doubleTapChecker.isDoubleTap(audioData);
+        if (widget.onDoubleTap != null && isDoubleTap) {
+          setState(() {
             widget.onDoubleTap!(audioData);
-            return;
-          }
-        });
+          });
+          return;
+        } else {
+          setState(() => selectedList[audioData] = !selectedList[audioData]!);
+        }
       },
       cells: audioData.mapIndexed(
         (index, e) => DataCell(
@@ -209,13 +238,13 @@ class _PlayListWidgetState extends State<PlayListWidget> {
     );
   }
 
-  Widget _generateDataTable() {
+  Widget _generateDataTable(BuildContext context) {
     return DataTable(
       sortAscending: isAsc,
       sortColumnIndex: sortColumnIndex,
-      showCheckboxColumn: false,
-      columns: columnList.map((e) => _generateDataColumn(e)).toList(),
-      rows: _list.map((e) => _generateDataRow(e)).toList(),
+      showCheckboxColumn: true,
+      columns: columnList.map((e) => _generateDataColumn(context, e)).toList(),
+      rows: _list.map((e) => _generateDataRow(context, e)).toList(),
     );
   }
 }
