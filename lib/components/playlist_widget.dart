@@ -4,7 +4,8 @@ import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
 import 'package:kikimasu/models/audio_data.dart';
 import 'package:kikimasu/models/double_tap_checker.dart';
-import 'package:path/path.dart';
+import 'package:path/path.dart' as path;
+import 'package:shared_preferences/shared_preferences.dart';
 
 const _minimumWidth = 50.0;
 
@@ -46,12 +47,30 @@ class _PlayListWidgetState extends State<PlayListWidget> {
   bool isAsc = true;
   int sortColumnIndex = 0;
   final Map<AudioData, bool> selectedList = <AudioData, bool>{};
+  late Future<bool> hasReadSharedPref;
+  final dataStoreKey = "audioPath";
+
+  @override
+  void initState() {
+    super.initState();
+    hasReadSharedPref = SharedPreferences.getInstance().then((value) {
+      final list = value.getStringList(dataStoreKey) ?? [];
+      _list.addAll(list.map((e) {
+        final audioData = AudioData(name: path.basename(e), path: File(e).parent.path);
+        selectedList[audioData] = false;
+        return audioData;
+      }).toList());
+      return true;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return DropTarget(
       onDragDone: (detail) async {
-        final notExistedFiles = detail.files.where((element) => !_list.any((file) => file.path == element.path));
+        final notExistedFiles = detail.files
+            .where((element) => !_list.any((audio) => path.join(audio.path, audio.name) == element.path))
+            .toList();
         if (notExistedFiles.isNotEmpty) {
           setState(() {
             _list.addAll(
@@ -61,6 +80,10 @@ class _PlayListWidgetState extends State<PlayListWidget> {
               selectedList[element] = false;
             }
           });
+          final shared = await SharedPreferences.getInstance();
+          final currentList = shared.getStringList(dataStoreKey) ?? [];
+          currentList.addAll(notExistedFiles.map((e) => e.path).toList());
+          await shared.setStringList(dataStoreKey, currentList);
         }
 
         debugPrint('onDragDone:');
@@ -85,8 +108,7 @@ class _PlayListWidgetState extends State<PlayListWidget> {
             BoxShadow(
               spreadRadius: -4.0,
               blurRadius: 3.0,
-              color:
-                  _dragging ? Theme.of(context).primaryColorDark.withAlpha(5) : Theme.of(context).primaryColorLight,
+              color: _dragging ? Theme.of(context).primaryColorDark.withAlpha(5) : Theme.of(context).primaryColorLight,
             ),
           ],
           shape: BoxShape.rectangle,
@@ -94,13 +116,14 @@ class _PlayListWidgetState extends State<PlayListWidget> {
             Radius.circular(10),
           ),
         ),
-        child: Stack(
-          children: [
-            if (_list.isEmpty)
-              const Center(child: Text("Drop here"))
-            else
-              _generateCrossScrollbars(_generateDataTable(context)),
-          ],
+        child: FutureBuilder(
+          future: hasReadSharedPref,
+          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+            if (!snapshot.hasData || _list.isEmpty) {
+              return const Center(child: Text("Drop here"));
+            }
+            return _generateCrossScrollbars(_generateDataTable(context));
+          },
         ),
       ),
     );
