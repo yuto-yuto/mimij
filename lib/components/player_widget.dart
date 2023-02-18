@@ -56,7 +56,6 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
 
   bool get _isPlaying => _audioPlayerState == PlayerState.playing;
   bool get _isPaused => _audioPlayerState == PlayerState.paused;
-  bool get _isCompleted => _audioPlayerState == PlayerState.completed;
 
   String get _durationText => audioLength?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
   String get _positionText => currentPositionDuration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
@@ -138,7 +137,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
         ),
         IconButton(
           key: const Key('play_button'),
-          onPressed: _isPlaying || _isCompleted ? null : _play,
+          onPressed: _isPlaying ? null : _play,
           iconSize: _iconSize,
           icon: const Icon(Icons.play_arrow),
           color: Colors.cyan,
@@ -352,7 +351,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     _positionSubscription = widget.player.onPositionChanged.listen((p) {
       currentPositionDuration = p;
 
-      if (endRelativeX.currentDuration != null && endRelativeX.currentDuration! < p) {
+      if (endRelativeX.currentDuration != null && endRelativeX.currentDuration! <= p) {
         widget.player.seek(startRelativeX.currentDuration ?? Duration.zero);
         setState(() => sliderPosition = 0);
         return;
@@ -360,7 +359,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
       if (startRelativeX.currentDuration != null) {
         // loop when the audio almost finishes
         final rest = audioLength!.inMilliseconds - p.inMilliseconds;
-        if (rest < 100) {
+        if (rest <= 1000) {
           setState(() {
             sliderPosition = startRelativeX.sliderPosition!;
             currentPositionDuration = startRelativeX.currentDuration;
@@ -390,11 +389,16 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
         setState(() {
           _audioPlayerState = PlayerState.stopped;
           currentPositionDuration = Duration.zero;
+          sliderPosition = 0;
         });
       },
     );
 
     _playerStateChangeSubscription = widget.player.onPlayerStateChanged.listen((state) {
+      if (state == PlayerState.completed) {
+        return;
+      }
+
       debugPrint(state.name);
       setState(() {
         _audioPlayerState = state;
