@@ -47,6 +47,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
   bool isAPressed = false;
   bool isBPressed = false;
   double volume = 1;
+  bool isCurrentAudioLoop = false;
 
   PlayerState? _audioPlayerState;
   StreamSubscription? _durationSubscription;
@@ -253,10 +254,10 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
         ),
         IconButton(
           key: const Key("one_loop_button"),
-          onPressed: () => {},
+          onPressed: () => setState(() => isCurrentAudioLoop = !isCurrentAudioLoop),
           iconSize: _iconSize,
           icon: const Icon(Icons.loop),
-          color: Colors.cyan,
+          color: isCurrentAudioLoop ? Theme.of(context).disabledColor : Theme.of(context).primaryColor,
         ),
       ],
     );
@@ -351,20 +352,25 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     _positionSubscription = widget.player.onPositionChanged.listen((p) {
       currentPositionDuration = p;
 
-      if (endRelativeX.currentDuration != null && endRelativeX.currentDuration! <= p) {
+      final isEndPositionOver = endRelativeX.currentDuration != null && endRelativeX.currentDuration! <= p;
+
+      if (isEndPositionOver) {
         widget.player.seek(startRelativeX.currentDuration ?? Duration.zero);
         setState(() => sliderPosition = 0);
         return;
       }
-      if (startRelativeX.currentDuration != null) {
-        // loop when the audio almost finishes
-        final rest = audioLength!.inMilliseconds - p.inMilliseconds;
-        if (rest <= 1000) {
+      // loop when the audio almost finishes
+      final rest = audioLength!.inMilliseconds - p.inMilliseconds;
+      if (rest <= 1000) {
+        if (startRelativeX.currentDuration != null) {
           setState(() {
             sliderPosition = startRelativeX.sliderPosition!;
             currentPositionDuration = startRelativeX.currentDuration;
-            widget.player.seek(startRelativeX.currentDuration!);
           });
+          widget.player.seek(startRelativeX.currentDuration!);
+        } else if (isCurrentAudioLoop) {
+          widget.player.seek(Duration.zero);
+          setState(() => sliderPosition = 0);
         }
       }
 
@@ -376,9 +382,9 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
             currentPositionDuration = audioLength;
             sliderPosition = 1;
           });
-          return;
+        } else {
+          setState(() => sliderPosition = value);
         }
-        setState(() => sliderPosition = value);
         return;
       }
       setState(() => sliderPosition = 0);
