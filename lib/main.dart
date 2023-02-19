@@ -1,3 +1,6 @@
+import 'dart:io';
+import 'package:window_size/window_size.dart' as window_size;
+
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:kikimasu/components/player_widget.dart';
@@ -5,6 +8,12 @@ import 'package:kikimasu/components/playlist_widget.dart';
 import 'package:path/path.dart' as path;
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
+    window_size.setWindowMinSize(const Size(640, 360));
+  }
+
   runApp(const MyApp());
 }
 
