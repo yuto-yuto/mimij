@@ -264,36 +264,14 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
 
     final slider = Slider(
       key: _keyForSlider,
-      onChanged: (double v) {
-        if (startRelativeX.sliderPosition != null && startRelativeX.sliderPosition! > v) {
-          setState(() {
-            sliderPosition = startRelativeX.sliderPosition!;
-          });
-          return;
-        }
-        if (endRelativeX.sliderPosition != null && endRelativeX.sliderPosition! < v) {
-          setState(() {
-            sliderPosition = endRelativeX.sliderPosition!;
-          });
-          return;
-        }
-
-        final duration = audioLength;
-        if (duration == null) {
-          return;
-        }
-        final position = v * duration.inMilliseconds;
-        widget.player.seek(Duration(milliseconds: position.round()));
-      },
+      onChanged: _onChangedAudioSlider,
       value: sliderPosition,
     );
 
     final volumeSlider = Slider(
       onChanged: (double v) {
         widget.player.setVolume(v);
-        setState(() {
-          volume = v;
-        });
+        setState(() => volume = v);
       },
       value: volume,
     );
@@ -339,7 +317,6 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
             Expanded(child: volumeSlider),
           ],
         ),
-        Text(_audioPlayerState.toString()),
       ],
     );
   }
@@ -410,6 +387,28 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
         _audioPlayerState = state;
       });
     });
+  }
+
+  void _onChangedAudioSlider(double v) {
+    if (startRelativeX.sliderPosition != null && startRelativeX.sliderPosition! > v) {
+      setState(() {
+        sliderPosition = startRelativeX.sliderPosition!;
+      });
+      return;
+    }
+    if (endRelativeX.sliderPosition != null && endRelativeX.sliderPosition! < v) {
+      setState(() {
+        sliderPosition = endRelativeX.sliderPosition!;
+      });
+      return;
+    }
+
+    final duration = audioLength;
+    if (duration == null) {
+      return;
+    }
+    final position = v * duration.inMilliseconds;
+    widget.player.seek(Duration(milliseconds: position.round()));
   }
 
   Future<void> _play() async {
