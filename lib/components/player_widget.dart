@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PlayerWidget extends StatefulWidget {
   final AudioPlayer player;
@@ -47,7 +48,10 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
   bool isAPressed = false;
   bool isBPressed = false;
   double volume = 1;
+  late Future<double> initialVolume;
+  bool isInitialVolumeSet = false;
   bool isCurrentAudioLoop = false;
+  final volumeStoreKey = "VolumeStoreKey";
 
   PlayerState? _audioPlayerState;
   StreamSubscription? _durationSubscription;
@@ -90,6 +94,9 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     super.initState();
     _initStreams();
     WidgetsBinding.instance.addObserver(this);
+    initialVolume = SharedPreferences.getInstance().then((value) {
+      return value.getDouble(volumeStoreKey) ?? 1;
+    });
   }
 
   @override
@@ -268,13 +275,15 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
       value: sliderPosition,
     );
 
-    final volumeSlider = Slider(
-      onChanged: (double v) {
-        widget.player.setVolume(v);
-        setState(() => volume = v);
-      },
-      value: volume,
-    );
+    // final volumeSlider = Slider(
+    //   onChanged: (double v) async {
+    //     widget.player.setVolume(v);
+    //     setState(() => volume = v);
+    //     final shared = await SharedPreferences.getInstance();
+    //     shared.setDouble(volumeStoreKey, v);
+    //   },
+    //   value: volume,
+    // );
 
     final currentPosition = Text(
       '$_positionText / $_durationText',
@@ -314,7 +323,27 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
           mainAxisAlignment: MainAxisAlignment.start,
           children: [
             const SizedBox(width: 70, child: Center(child: Text("Volume"))),
-            Expanded(child: volumeSlider),
+            Expanded(
+              child: FutureBuilder(
+                future: initialVolume,
+                builder: (context, snapshot) {
+                  if (snapshot.hasData && !isInitialVolumeSet) {
+                    volume = snapshot.data!;
+                    isInitialVolumeSet = true;
+                  }
+                  final volumeSlider = Slider(
+                    onChanged: (double v) async {
+                      widget.player.setVolume(v);
+                      setState(() => volume = v);
+                      final shared = await SharedPreferences.getInstance();
+                      shared.setDouble(volumeStoreKey, v);
+                    },
+                    value: volume,
+                  );
+                  return volumeSlider;
+                },
+              ),
+            ),
           ],
         ),
       ],
