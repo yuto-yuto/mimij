@@ -327,6 +327,9 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     });
 
     _positionSubscription = widget.player.onPositionChanged.listen((p) {
+      if (audioLength == null) {
+        return;
+      }
       currentPositionDuration = p;
 
       final isEndPositionOver = endRelativeX.currentDuration != null && endRelativeX.currentDuration! <= p;

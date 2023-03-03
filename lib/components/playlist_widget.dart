@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 import 'package:desktop_drop/desktop_drop.dart';
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:kikimasu/models/audio_data.dart';
 import 'package:kikimasu/models/double_tap_checker.dart';
 import 'package:path/path.dart' as path;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/services.dart';
 
 const _minimumWidth = 50.0;
 
@@ -49,6 +51,10 @@ class _PlayListWidgetState extends State<PlayListWidget> {
   final Map<AudioData, bool> selectedList = <AudioData, bool>{};
   late Future<bool> hasReadSharedPref;
   final dataStoreKey = "audioPath";
+  final focusNodeForDataTable = FocusNode();
+  bool isControlPressed = false;
+  bool isShiftPressed = false;
+  int? lastSelectedRowIndex;
 
   @override
   void initState() {
@@ -100,33 +106,76 @@ class _PlayListWidgetState extends State<PlayListWidget> {
       onDragExited: (detail) {
         setState(() => _dragging = false);
       },
-      child: Container(
-        width: double.infinity,
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(color: Theme.of(context).primaryColorDark.withOpacity(0.6)),
-            BoxShadow(
-              spreadRadius: -4.0,
-              blurRadius: 3.0,
-              color: _dragging ? Theme.of(context).primaryColorDark.withAlpha(5) : Theme.of(context).primaryColorLight,
+      child: KeyboardListener(
+        autofocus: true,
+        focusNode: focusNodeForDataTable,
+        onKeyEvent: _bindShiftCtrlKey,
+        child: Container(
+          width: double.infinity,
+          decoration: BoxDecoration(
+            boxShadow: [
+              BoxShadow(color: Theme.of(context).primaryColorDark.withOpacity(0.6)),
+              BoxShadow(
+                spreadRadius: -4.0,
+                blurRadius: 3.0,
+                color:
+                    _dragging ? Theme.of(context).primaryColorDark.withAlpha(5) : Theme.of(context).primaryColorLight,
+              ),
+            ],
+            shape: BoxShape.rectangle,
+            borderRadius: const BorderRadius.all(
+              Radius.circular(10),
             ),
-          ],
-          shape: BoxShape.rectangle,
-          borderRadius: const BorderRadius.all(
-            Radius.circular(10),
           ),
-        ),
-        child: FutureBuilder(
-          future: hasReadSharedPref,
-          builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
-            if (!snapshot.hasData || _list.isEmpty) {
-              return const Center(child: Text("Drop here"));
-            }
-            return _generateCrossScrollbars(_generateDataTable(context));
-          },
+          child: FutureBuilder(
+            future: hasReadSharedPref,
+            builder: (BuildContext context, AsyncSnapshot<bool> snapshot) {
+              if (!snapshot.hasData || _list.isEmpty) {
+                return const Center(child: Text("Drop here"));
+              }
+              return _generateCrossScrollbars(_generateDataTable(context));
+            },
+          ),
         ),
       ),
     );
+  }
+
+  Future<void> _bindShiftCtrlKey(KeyEvent value) async {
+    if (value.logicalKey == LogicalKeyboardKey.controlLeft || value.logicalKey == LogicalKeyboardKey.controlRight) {
+      setState(() {
+        isControlPressed = value is KeyDownEvent ? true : false;
+      });
+    } else if (value.logicalKey == LogicalKeyboardKey.shiftLeft || value.logicalKey == LogicalKeyboardKey.shiftRight) {
+      setState(() {
+        isShiftPressed = value is KeyDownEvent
+            ? true
+            : value is KeyUpEvent
+                ? false
+                : isShiftPressed;
+      });
+    } else if (value.logicalKey == LogicalKeyboardKey.delete) {
+      if (value is! KeyDownEvent) {
+        return;
+      }
+
+      final selectedRows = selectedList.entries.where((element) => element.value);
+      if (selectedRows.isEmpty) {
+        return;
+      }
+
+      final shared = await SharedPreferences.getInstance();
+      final currentList = shared.getStringList(dataStoreKey) ?? [];
+      setState(() {
+        for (final entry in selectedRows) {
+          selectedList.remove(entry);
+          _list.remove(entry.key);
+          final fullpath = path.join(entry.key.path, entry.key.name);
+          currentList.remove(fullpath);
+        }
+      });
+      await shared.setStringList(dataStoreKey, currentList);
+    }
   }
 
   Widget _generateCrossScrollbars(Widget child) {
@@ -234,12 +283,49 @@ class _PlayListWidgetState extends State<PlayListWidget> {
       onSelectChanged: (bool? selected) {
         final isDoubleTap = doubleTapChecker.isDoubleTap(audioData);
         if (widget.onDoubleTap != null && isDoubleTap) {
+          final selectedRows = _list.where((element) => selectedList[element]!);
           setState(() {
+            for (final row in selectedRows) {
+              selectedList[row] = false;
+            }
+            selectedList[audioData] = selected ?? false;
             widget.onDoubleTap!(audioData);
           });
           return;
+        }
+
+        final currentIndex = _list.indexOf(audioData);
+
+        if (!isControlPressed && !isShiftPressed) {
+          final selectedRows = _list.where((element) => selectedList[element]!);
+          setState(() {
+            for (final row in selectedRows) {
+              selectedList[row] = false;
+            }
+            selectedList[audioData] = selected ?? false;
+          });
+        } else if (isControlPressed) {
+          setState(() {
+            selectedList[audioData] = selected ?? false;
+          });
         } else {
-          setState(() => selectedList[audioData] = !selectedList[audioData]!);
+          if (lastSelectedRowIndex == null) {
+            setState(() {
+              selectedList[audioData] = selected ?? false;
+            });
+          } else {
+            final diff = lastSelectedRowIndex! - currentIndex;
+            final selectedIndexes = List.generate(
+              diff.abs() + 1,
+              (index) => index + min(lastSelectedRowIndex!, currentIndex),
+            );
+            setState(() {
+              for (int i = 0; i < selectedList.length; i++) {
+                selectedList[_list[i]] = selectedIndexes.contains(i) ? true : false;
+              }
+            });
+            return;
+          }
         }
       },
       cells: audioData.mapIndexed(
