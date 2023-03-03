@@ -1,4 +1,4 @@
-package com.example.kikimasu
+package com.example.mimij
 
 import io.flutter.embedding.android.FlutterActivity
 

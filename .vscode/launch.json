@@ -5,18 +5,18 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "kikimasu",
+            "name": "mimij",
             "request": "launch",
             "type": "dart"
         },
         {
-            "name": "kikimasu (profile mode)",
+            "name": "mimij (profile mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "profile"
         },
         {
-            "name": "kikimasu (release mode)",
+            "name": "mimij (release mode)",
             "request": "launch",
             "type": "dart",
             "flutterMode": "release"

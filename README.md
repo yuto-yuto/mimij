@@ -1,4 +1,4 @@
-# kikimasu
+# mimij
 
 An Audio Player.
 
@@ -21,8 +21,8 @@ $ flutter run -d linux
 Launching lib/main.dart on Linux in debug mode...
 CMake Error at cmake_install.cmake:66 (file):
   file INSTALL cannot copy file
-  "/home/development/kikimasu/build/linux/x64/debug/intermediates_do_not_run/kikimasu"
-  to "/usr/local/kikimasu": Permission denied.
+  "/home/development/mimij/build/linux/x64/debug/intermediates_do_not_run/mimij"
+  to "/usr/local/mimij": Permission denied.
 
 
 Building Linux application...                                           
