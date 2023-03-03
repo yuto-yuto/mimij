@@ -3,7 +3,18 @@ import 'dart:async';
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+class BackIntent extends Intent {}
+
+class BigBackIntent extends Intent {}
+
+class SkipIntent extends Intent {}
+
+class BigSkipIntent extends Intent {}
+
+class ResumeIntent extends Intent {}
 
 class PlayerWidget extends StatefulWidget {
   final AudioPlayer player;
@@ -61,6 +72,7 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
 
   bool get _isPlaying => _audioPlayerState == PlayerState.playing;
   bool get _isPaused => _audioPlayerState == PlayerState.paused;
+  bool get _isStopped => _audioPlayerState == PlayerState.stopped;
 
   String get _durationText => audioLength?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
   String get _positionText => currentPositionDuration?.toString().split('.').first.padLeft(8, "0") ?? '00:00:00';
@@ -275,78 +287,93 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
       value: sliderPosition,
     );
 
-    // final volumeSlider = Slider(
-    //   onChanged: (double v) async {
-    //     widget.player.setVolume(v);
-    //     setState(() => volume = v);
-    //     final shared = await SharedPreferences.getInstance();
-    //     shared.setDouble(volumeStoreKey, v);
-    //   },
-    //   value: volume,
-    // );
-
     final currentPosition = Text(
       '$_positionText / $_durationText',
       style: const TextStyle(fontSize: 16.0),
     );
 
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: <Widget>[
-        Row(
-          children: [
-            buttons,
-            const Expanded(child: SizedBox()),
-            Padding(
-              padding: const EdgeInsets.only(right: 30.0),
-              child: currentPosition,
-            ),
-          ],
-        ),
-        Stack(
-          children: [
-            Positioned(
-              top: 10,
-              left: leftGlobalX,
-              child: ColoredBox(
-                color: Theme.of(context).primaryColor.withOpacity(0.5),
-                child: SizedBox(
-                  height: 30,
-                  width: selectedAreaWidth,
+    return Shortcuts(
+      shortcuts: {
+        LogicalKeySet(LogicalKeyboardKey.keyA): BigBackIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyS): BackIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyD): SkipIntent(),
+        LogicalKeySet(LogicalKeyboardKey.keyF): BigSkipIntent(),
+        LogicalKeySet(LogicalKeyboardKey.space): ResumeIntent(),
+      },
+      child: Actions(
+        actions: {
+          BigBackIntent: CallbackAction(onInvoke: (intent) => _backInSec(5)),
+          BackIntent: CallbackAction(onInvoke: (intent) => _backInSec(2)),
+          SkipIntent: CallbackAction(onInvoke: (intent) => _skipInSec(2)),
+          BigSkipIntent: CallbackAction(onInvoke: (intent) => _skipInSec(5)),
+          ResumeIntent: CallbackAction(onInvoke: (intent) {
+            if (_isPaused || _isStopped) {
+              widget.player.resume();
+            } else {
+              widget.player.pause();
+            }
+            return null;
+          }),
+        },
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            Row(
+              children: [
+                buttons,
+                const Expanded(child: SizedBox()),
+                Padding(
+                  padding: const EdgeInsets.only(right: 30.0),
+                  child: currentPosition,
                 ),
-              ),
+              ],
             ),
-            slider,
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: [
-            const SizedBox(width: 70, child: Center(child: Text("Volume"))),
-            Expanded(
-              child: FutureBuilder(
-                future: initialVolume,
-                builder: (context, snapshot) {
-                  if (snapshot.hasData && !isInitialVolumeSet) {
-                    volume = snapshot.data!;
-                    isInitialVolumeSet = true;
-                  }
-                  final volumeSlider = Slider(
-                    onChanged: (double v) async {
-                      widget.player.setVolume(v);
-                      setState(() => volume = v);
-                      final shared = await SharedPreferences.getInstance();
-                      shared.setDouble(volumeStoreKey, v);
+            Stack(
+              children: [
+                Positioned(
+                  top: 10,
+                  left: leftGlobalX,
+                  child: ColoredBox(
+                    color: Theme.of(context).primaryColor.withOpacity(0.5),
+                    child: SizedBox(
+                      height: 30,
+                      width: selectedAreaWidth,
+                    ),
+                  ),
+                ),
+                slider,
+              ],
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                const SizedBox(width: 70, child: Center(child: Text("Volume"))),
+                Expanded(
+                  child: FutureBuilder(
+                    future: initialVolume,
+                    builder: (context, snapshot) {
+                      if (snapshot.hasData && !isInitialVolumeSet) {
+                        volume = snapshot.data!;
+                        isInitialVolumeSet = true;
+                      }
+                      final volumeSlider = Slider(
+                        onChanged: (double v) async {
+                          widget.player.setVolume(v);
+                          setState(() => volume = v);
+                          final shared = await SharedPreferences.getInstance();
+                          shared.setDouble(volumeStoreKey, v);
+                        },
+                        value: volume,
+                      );
+                      return volumeSlider;
                     },
-                    value: volume,
-                  );
-                  return volumeSlider;
-                },
-              ),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -470,5 +497,23 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
       rightGlobalX = null;
       selectedAreaWidth = null;
     });
+  }
+
+  void _backInSec(int sec) {
+    if (currentPositionDuration == null || audioLength == null) {
+      return;
+    }
+    final minusSec = currentPositionDuration!.inSeconds < sec ? 0 : currentPositionDuration!.inSeconds - sec;
+    widget.player.seek(Duration(seconds: minusSec));
+  }
+
+  void _skipInSec(int sec) {
+    if (currentPositionDuration == null || audioLength == null) {
+      return;
+    }
+    final plusSec = audioLength!.inSeconds - currentPositionDuration!.inSeconds < sec
+        ? audioLength!.inSeconds
+        : currentPositionDuration!.inSeconds + sec;
+    widget.player.seek(Duration(seconds: plusSec));
   }
 }
