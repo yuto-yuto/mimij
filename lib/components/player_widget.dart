@@ -148,13 +148,13 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
     final buttons = Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        IconButton(
-          key: const Key("previous_button"),
-          onPressed: () => {},
-          iconSize: _iconSize,
-          icon: const Icon(Icons.keyboard_double_arrow_left),
-          color: Colors.cyan,
-        ),
+        // IconButton(
+        //   key: const Key("previous_button"),
+        //   onPressed: () => {},
+        //   iconSize: _iconSize,
+        //   icon: const Icon(Icons.keyboard_double_arrow_left),
+        //   color: Colors.cyan,
+        // ),
         IconButton(
           key: const Key('play_button'),
           onPressed: _isPlaying ? null : _play,
@@ -176,13 +176,13 @@ class _PlayerWidgetState extends State<PlayerWidget> with WidgetsBindingObserver
           icon: const Icon(Icons.stop),
           color: Colors.cyan,
         ),
-        IconButton(
-          key: const Key("next_button"),
-          onPressed: () => {},
-          iconSize: _iconSize,
-          icon: const Icon(Icons.keyboard_double_arrow_right),
-          color: Colors.cyan,
-        ),
+        // IconButton(
+        //   key: const Key("next_button"),
+        //   onPressed: () => {},
+        //   iconSize: _iconSize,
+        //   icon: const Icon(Icons.keyboard_double_arrow_right),
+        //   color: Colors.cyan,
+        // ),
         IconButton(
           key: const Key("from_here_button"),
           onPressed: () {
