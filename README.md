@@ -2,7 +2,12 @@
 
 An Audio Player.
 
+## Logo
+
+![Capture](./assets/app_icon-256-256.png)
+
 ## Image
+
 
 ![Capture](./assets/mimij.png)
 
