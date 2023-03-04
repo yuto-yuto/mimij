@@ -2,11 +2,10 @@
 
 An Audio Player.
 
-## Features
+## Image
 
-* Start/Stop/Resume
-* AB loop
-* Having audio List (Grouping)
+![Capture](./assets/mimij.png)
+
 
 ## Requiredment for Linux
 
