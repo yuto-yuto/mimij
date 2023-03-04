@@ -1,18 +1,26 @@
-import 'dart:io';
-import 'package:window_size/window_size.dart' as window_size;
-
 import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:mimij/components/player_widget.dart';
 import 'package:mimij/components/playlist_widget.dart';
 import 'package:path/path.dart' as path;
+import 'package:window_manager/window_manager.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await windowManager.ensureInitialized();
 
-  if (Platform.isWindows || Platform.isLinux || Platform.isMacOS) {
-    window_size.setWindowMinSize(const Size(640, 360));
-  }
+  WindowOptions windowOptions = const WindowOptions(
+    title: "mimij - 1.0.0",
+    size: Size(800, 500),
+    center: true,
+    backgroundColor: Colors.transparent,
+    minimumSize: Size(640, 360),
+  );
+
+  windowManager.waitUntilReadyToShow(windowOptions, () async {
+    await windowManager.show();
+    await windowManager.focus();
+  });
 
   runApp(const MyApp());
 }
