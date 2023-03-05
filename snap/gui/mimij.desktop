@@ -5,4 +5,4 @@ Exec=mimij
 Icon=${SNAP}/meta/gui/mimij.png # replace name to your app name
 Terminal=false
 Type=Application
-Categories=Education; #adjust accordingly your snap category
+Categories=Audio;
