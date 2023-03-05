@@ -39,3 +39,15 @@ Run `flutter clean` in this case.
 flutter clean
 flutter run -d linux
 ```
+
+## Releasing for Linux
+
+When executing **`snapcraft`**, the following error occurs and it's not possible to release at the moment.
+
+```
+CMake Error: The current CMakeCache.txt directory /root/parts/mimij/build/build/linux/x64/release/CMakeCache.txt is
+different than the directory /home/user_name/development/mimij/build/linux/x64/release where CMakeCache.txt was created. This may
+result in binaries being created in the wrong place. If you are not sure, reedit the CMakeCache.txt
+[   +3 ms] CMake Error: The source "/root/parts/mimij/build/linux/CMakeLists.txt" does not match the source
+"/home/user_name/development/mimij/linux/CMakeLists.txt" used to generate cache.  Re-run cmake with a different source directory.
+```
